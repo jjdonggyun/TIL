@@ -8,5 +8,5 @@ Today I Learned
 
 ## FOLDER STRUCTURE
 ✔️ 패키지명은 project + _현재 월 <br>
-✔️ 클래스명은 pro+해당 일에 문제를 푼 순서 +_현재 일 <br>
+✔️ 클래스명은 pro+현재 일 + _해당 일에 문제를 푼 순서  <br>
 ✔️ 알고리즘 또는 코드의 설명은 코드 안에 주석으로 설명한다 <br>
