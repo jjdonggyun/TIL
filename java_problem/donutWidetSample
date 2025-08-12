@@ -1,0 +1,120 @@
+import { createElement, useEffect, useRef } from "react";
+import { Chart, ArcElement, Tooltip, Legend, DoughnutController, ChartItem } from "chart.js";
+
+Chart.register(ArcElement, Tooltip, Legend, DoughnutController);
+
+// 위/아래만 꺾이는 라벨 플러그인
+const BendLabelsPlugin = {
+    id: "bendLabelsPlugin",
+    afterDraw(chart: Chart) {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+
+        const cx = (chartArea.left + chartArea.right) / 2;
+        const cy = (chartArea.top + chartArea.bottom) / 2;
+
+        chart.data.datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            meta.data.forEach((dp: any, index: number) => {
+                const val = Number((dataset.data as any[])[index]);
+                if (!val || dp?.hidden) return;
+
+                const { x, y } = dp.tooltipPosition();
+                const isRight = x >= cx;
+                const isTopOrBottom = Math.abs(y - cy) > 6;
+                const bendLen = 15;
+                const horizLen = 18;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+
+                if (isTopOrBottom) {
+                    const v = y < cy ? -bendLen : bendLen;
+                    ctx.lineTo(x, y + v);
+                    ctx.lineTo(x + (isRight ? horizLen : -horizLen), y + v);
+                } else {
+                    ctx.lineTo(x + (isRight ? horizLen : -horizLen), y);
+                }
+
+                ctx.strokeStyle = "rgb(42,43,46)";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const tx = isRight ? x + horizLen + 5 : x - horizLen - 5;
+                const ty = isTopOrBottom ? (y < cy ? y - bendLen : y + bendLen) : y;
+
+                ctx.font = "bold 16px Pretendard, sans-serif";
+                ctx.textAlign = isRight ? "left" : "right";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "rgb(42,43,46)";
+                ctx.fillText(String(val), tx, ty);
+                ctx.restore();
+            });
+        });
+    }
+};
+
+export default function DonutWithLabels() {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const chartRef = useRef<Chart | null>(null);
+
+    useEffect(() => {
+        if (!canvasRef.current) return;
+
+        // 샘플 데이터
+        const labels = ["데이터1", "데이터2", "데이터3", "데이터4"];
+        const data = [749, 54, 541, 964];
+        const colors = ["#FF5722", "#4CAF50", "#4C77FF", "#9966FF"];
+
+        if (chartRef.current) {
+            chartRef.current.destroy();
+            chartRef.current = null;
+        }
+
+        const ctx = canvasRef.current.getContext("2d") as ChartItem;
+        chartRef.current = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels,
+                datasets: [
+                    {
+                        data,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "70%",
+                radius: "92%",
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom",
+                        labels: {
+                            boxWidth: 12,
+                            padding: 20,
+                            font: { size: 14, weight: "bold" }
+                        }
+                    },
+                    tooltip: { enabled: false }
+                }
+            },
+            plugins: [BendLabelsPlugin]
+        });
+
+        return () => {
+            chartRef.current?.destroy();
+            chartRef.current = null;
+        };
+    }, []);
+
+    return (
+        <div style={{ width: "100%", height: "260px", position: "relative" }}>
+            <canvas ref={canvasRef} />
+        </div>
+    );
+}
